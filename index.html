@@ -263,12 +263,14 @@ async function send() {
       body: JSON.stringify({ message: text, model: selectedModel.id, sessionId: "mg-infra-owner", history: msgs.slice(-10) })
     });
     removeTyping(tid);
-    if (!r.ok) {
-      addMsg("ai", "⚠️ Error " + r.status + ": " + await r.text());
+    const rawText = await r.text();
+    if (!r.ok || !rawText.trim()) {
+      addMsg("ai", "⚠️ Error " + r.status + (rawText ? ": " + rawText : " — empty response from server"));
       setStatus(false);
     } else {
-      const d = await r.json();
-      const reply = d.reply || d.output || d.text || d.message || JSON.stringify(d);
+      let d;
+      try { d = JSON.parse(rawText); } catch(e) { d = { reply: rawText }; }
+      const reply = d.reply || d.output || d.text || d.message || rawText;
       msgs.push({ role: "assistant", content: reply });
       addMsg("ai", reply, d.memorySaved);
       setStatus(true);
